@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/chromagram_images" />
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/melspectogram_images" />
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/melspectogram_npy" />
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/spectogram_images" />
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/spectogram_npy" />
+      <excludeFolder url="file://$MODULE_DIR$/transformingAudio/chromagram_npy" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

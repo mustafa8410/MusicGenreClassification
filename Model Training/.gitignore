@@ -1,1 +1,7 @@
 /transformingAudio/Data/
+/transformingAudio/melspectogram_images/
+/transformingAudio/spectogram_images/
+/transformingAudio/chromagram_images/
+/transformingAudio/melspectogram_npy/
+/transformingAudio/spectogram_npy/
+/transformingAudio/chromagram_npy/
