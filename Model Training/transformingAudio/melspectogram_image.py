@@ -33,7 +33,7 @@ for genre in os.listdir(datasetPath):
                         plt.axis('off')
 
                         songOutputPath = os.path.join(genreOutputPath, song.replace('.wav', f'_{i+1}.png'))
-                        plt.savefig(songOutputPath)
+                        plt.savefig(songOutputPath, bbox_inches='tight', pad_inches=0)
                         plt.close(fig)
                         print(f"Saved mel spectrogram for {song} chunk {i+1}. Total length of the chunk: {len(yChunk)}")
                     print(f"Processed {song} in {genre}")

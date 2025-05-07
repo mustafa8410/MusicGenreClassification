@@ -35,7 +35,7 @@ for genre in os.listdir(datasetPath):
                         plt.axis('off')  # hide axis for clean image
 
                         songOutputPath = os.path.join(genreOutputPath, song.replace('.wav', f'_{i + 1}.png'))
-                        plt.savefig(songOutputPath)
+                        plt.savefig(songOutputPath, bbox_inches='tight', pad_inches=0)
                         plt.close(fig)
                         print(f"Saved chromagram for {song} chunk {i + 1}")
                     print(f"Processed {song} in {genre}")
