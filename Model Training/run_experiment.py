@@ -83,13 +83,13 @@ def train_model(model, model_name, train_loader, val_loader, epochs=5):
     return accuracy, precision, recall, f1
 
 
-def run_experiment(image_type, model_name, folds=5, batch_size=16, epochs=5):
+def run_experiment(image_type, model_name, folds=3, batch_size=16, epochs=5):
     dataset = get_dataset(image_type)
     print("Dataset is loaded.")
     kfold = KFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
-    print("\n\n\nStarting K-Fold Cross Validation for all models and data types...")
+    #print("\n\n\nStarting K-Fold Cross Validation for all models and data types...")
     print(f"\nImage Type: {image_type}, Model: {model_name}, Folds: {folds}, Batch Size: {batch_size}, Epochs: {epochs}")
 
     for fold, (train_idx, val_idx) in enumerate(kfold.split(dataset)):
