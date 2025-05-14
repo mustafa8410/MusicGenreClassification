@@ -1,3 +1,6 @@
+# Updated version of customcnn2.py corrected based on customcnn1_corrected.py
+import os
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -22,7 +25,7 @@ def get_dataset(image_type):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean= [0.5] * 3, std= [0.5] * 3)
+        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
     ])
     return datasets.ImageFolder(root=data_path, transform=transform)
 
@@ -30,50 +33,30 @@ def get_dataset(image_type):
 def build_sequential_cnn(num_classes):
     return nn.Sequential(
         nn.Conv2d(3, 32, kernel_size=3, padding=1),
-        nn.BatchNorm2d(32),
-        nn.ReLU(),
-        nn.Conv2d(32, 32, kernel_size=3, padding=1),
-        nn.BatchNorm2d(32),
         nn.ReLU(),
         nn.MaxPool2d(2),
 
         nn.Conv2d(32, 64, kernel_size=3, padding=1),
-        nn.BatchNorm2d(64),
-        nn.ReLU(),
-        nn.Conv2d(64, 64, kernel_size=3, padding=1),
-        nn.BatchNorm2d(64),
         nn.ReLU(),
         nn.MaxPool2d(2),
 
         nn.Conv2d(64, 128, kernel_size=3, padding=1),
-        nn.BatchNorm2d(128),
-        nn.ReLU(),
-        nn.Conv2d(128, 128, kernel_size=3, padding=1),
-        nn.BatchNorm2d(128),
-        nn.ReLU(),
-        nn.MaxPool2d(2),
-
-        nn.Conv2d(128, 256, kernel_size=3, padding=1),
-        nn.BatchNorm2d(256),
-        nn.ReLU(),
-        nn.Conv2d(256, 256, kernel_size=3, padding=1),
-        nn.BatchNorm2d(256),
         nn.ReLU(),
         nn.MaxPool2d(2),
 
         nn.AdaptiveAvgPool2d((1, 1)),
         nn.Flatten(),
-        nn.Linear(256, 256),
+        nn.Linear(128, 64),
         nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, num_classes)
+        nn.Dropout(0.4),
+        nn.Linear(64, num_classes)
     )
 
 
-def train_model(model, train_loader, val_loader, epochs=50, patience=3):
+def train_model(model, train_loader, val_loader, epochs=30, patience=3):
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     best_val_loss = float('inf')
     patience_counter = 0
@@ -140,7 +123,7 @@ def evaluate_model(model, test_loader):
     return acc, prec, rec, f1, kappa
 
 
-def run_experiment(image_type, folds=5, batch_size=32, epochs=50):
+def run_experiment(image_type, folds=5, batch_size=32, epochs=30):
     print(f"\n========= Training CustomCNN on {image_type.upper()} =========")
     dataset = get_dataset(image_type)
     kfold = KFold(n_splits=folds, shuffle=True, random_state=42)
@@ -181,5 +164,5 @@ for image_type in ["spectrogram", "melspectrogram", "chromagram"]:
 results_df = pd.DataFrame(all_results, columns=["ImageType", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
 print("\n===== AVERAGE RESULTS FOR CUSTOM CNN =====")
 print(results_df)
-results_df.to_csv("customcnn1_corrected_results.csv", index=False)
-print("Results saved to 'customcnn1_corrected_results.csv'.")
+results_df.to_csv("customcnn2_corrected_results.csv", index=False)
+print("Results saved to 'customcnn2_corrected_results.csv'.")
