@@ -10,7 +10,7 @@ from torchvision.models import (
     mobilenet_v2, MobileNet_V2_Weights,
     efficientnet_b0, EfficientNet_B0_Weights
 )
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, cohen_kappa_score
 import numpy as np
 import pandas as pd
@@ -29,7 +29,6 @@ def get_dataset(image_type):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
     ])
     return datasets.ImageFolder(root=data_path, transform=transform)
 
@@ -47,9 +46,9 @@ def modify_model(name, num_classes):
     return model.to(device)
 
 
-def train_model(model, model_name, train_loader, val_loader, epochs=5, patience=3):
+def train_model(model, model_name, train_loader, val_loader, epochs=20, patience=5):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     print(f"Training {model_name} for {epochs} epochs...")
 
     best_val_loss = float('inf')
@@ -115,15 +114,16 @@ def evaluate_model(model, test_loader):
     return acc, prec, rec, f1, kappa
 
 
-def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=10):
+def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=20):
     dataset = get_dataset(image_type)
     print("Dataset is loaded.")
-    kfold = KFold(n_splits=folds, shuffle=True, random_state=42)
+    labels = [label for _, label in dataset.imgs]  # Extract labels for stratification
+    skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
     print(f"\nImage Type: {image_type}, Model: {model_name}, Folds: {folds}, Batch Size: {batch_size}, Epochs: {epochs}")
 
-    for fold, (train_val_idx, test_idx) in enumerate(kfold.split(dataset)):
+    for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.zeros(len(labels)), labels)):
         print(f"\n{'='*20} Fold {fold+1}/{folds} {'='*20}")
 
         train_val_data = Subset(dataset, train_val_idx)

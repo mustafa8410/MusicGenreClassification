@@ -1,4 +1,3 @@
-# Updated version of customcnn2.py corrected based on customcnn1_corrected.py
 import os
 import time
 import torch
@@ -6,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, cohen_kappa_score
 import numpy as np
 import pandas as pd
@@ -29,7 +28,12 @@ def get_dataset(image_type):
     ])
     return datasets.ImageFolder(root=data_path, transform=transform)
 
-
+# 32 of 3x3 kernels, relu, 2x2 pooling
+# 64 of 3x3 kernels, relu, 2x2 pooling
+# 128 of 3x3 kernels, relu, 2x2 pooling
+# flattened to a vector
+# fully connected layer, 128 input 64 output, relu, 0.4 dropout
+# classification layer
 def build_sequential_cnn(num_classes):
     return nn.Sequential(
         nn.Conv2d(3, 32, kernel_size=3, padding=1),
@@ -126,11 +130,12 @@ def evaluate_model(model, test_loader):
 def run_experiment(image_type, folds=5, batch_size=32, epochs=30):
     print(f"\n========= Training CustomCNN on {image_type.upper()} =========")
     dataset = get_dataset(image_type)
-    kfold = KFold(n_splits=folds, shuffle=True, random_state=42)
+    labels = [label for _, label in dataset.imgs]  # Extract labels for stratification
+    skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
 
-    for fold, (train_val_idx, test_idx) in enumerate(kfold.split(dataset)):
+    for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.zeros(len(labels)), labels)):
         print(f"\n--- Fold {fold+1}/{folds} ---")
 
         train_val_data = Subset(dataset, train_val_idx)
