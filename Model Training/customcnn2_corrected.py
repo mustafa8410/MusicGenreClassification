@@ -51,7 +51,10 @@ def build_sequential_cnn(num_classes):
         nn.AdaptiveAvgPool2d((1, 1)),
         nn.Flatten(),
         nn.Linear(128, 64),
-        nn.ReLU(),
+        nn.Sigmoid(),
+        nn.Dropout(0.4),
+        nn.Linear(64, 64),
+        nn.Sigmoid(),
         nn.Dropout(0.4),
         nn.Linear(64, num_classes)
     )
