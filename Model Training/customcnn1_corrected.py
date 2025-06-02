@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
 from sklearn.model_selection import StratifiedKFold
@@ -76,18 +76,19 @@ def build_sequential_cnn(num_classes):
         nn.Flatten(),
         nn.Linear(256, 256),
         nn.Sigmoid(),
-        nn.Dropout(0.5),
+        nn.Dropout(0.15),
         nn.Linear(256, 128),
         nn.Sigmoid(),
-        nn.Dropout(0.5),
+        nn.Dropout(0.15),
         nn.Linear(128, num_classes)
     )
 
 
-def train_model(model, train_loader, val_loader, epochs=50, patience=3):
+def train_model(model, train_loader, val_loader, epochs=75, patience=10):
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 
     best_val_loss = float('inf')
     patience_counter = 0
@@ -117,6 +118,8 @@ def train_model(model, train_loader, val_loader, epochs=50, patience=3):
                 loss = criterion(val_outputs, y_val)
                 val_loss += loss.item()
         avg_val_loss = val_loss / len(val_loader)
+        scheduler.step(avg_val_loss)
+        print(f"Current LR: {scheduler.get_last_lr()} for epoch {epoch+1}")
 
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
 
@@ -154,10 +157,14 @@ def evaluate_model(model, test_loader):
     return acc, prec, rec, f1, kappa
 
 
-def run_experiment(image_type, folds=5, batch_size=32, epochs=50):
+# Create a single DataFrame to store fold results for all image types
+all_fold_results_df = pd.DataFrame(columns=["ImageType", "Fold", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
+
+def run_experiment(image_type, folds=5, batch_size=32, epochs=75):
+    global all_fold_results_df  # To modify the global DataFrame
     print(f"\n========= Training CustomCNN on {image_type.upper()} =========")
     dataset = get_dataset(image_type)
-    labels = [label for _, label in dataset.imgs]  # Extract labels for stratification
+    labels = [label for _, label in dataset.imgs]
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
@@ -183,6 +190,9 @@ def run_experiment(image_type, folds=5, batch_size=32, epochs=50):
         print(f"Fold {fold+1}: Accuracy={acc:.2f}%, Precision={prec:.2f}%, Recall={rec:.2f}%, F1={f1:.2f}%, Cohen's Kappa={kappa:.2f}%")
         scores.append((acc, prec, rec, f1, kappa))
 
+        # Append fold results to the global DataFrame
+        all_fold_results_df.loc[len(all_fold_results_df)] = [image_type, fold + 1, acc, prec, rec, f1, kappa]
+
     scores_np = np.array(scores)
     mean_scores = scores_np.mean(axis=0)
     print(f"\nMean for {image_type.upper()}: Accuracy={mean_scores[0]:.2f}%, Precision={mean_scores[1]:.2f}%, Recall={mean_scores[2]:.2f}%, F1={mean_scores[3]:.2f}%, Cohen's Kappa={mean_scores[4]:.2f}%")
@@ -193,8 +203,14 @@ all_results = []
 for image_type in ["spectrogram", "melspectrogram", "chromagram"]:
     all_results.append(run_experiment(image_type))
 
+# Save mean scores
 results_df = pd.DataFrame(all_results, columns=["ImageType", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
 print("\n===== AVERAGE RESULTS FOR CUSTOM CNN =====")
 print(results_df)
 results_df.to_csv("customcnn1_corrected_results.csv", index=False)
-print("Results saved to 'customcnn1_corrected_results.csv'.")
+print("Mean results saved to 'customcnn1_corrected_results.csv'.")
+
+# Save all fold-wise results
+all_fold_results_df.to_csv("customcnn1_all_fold_results.csv", index=False)
+print("All fold-wise results saved to 'customcnn1_all_fold_results.csv'.")
+

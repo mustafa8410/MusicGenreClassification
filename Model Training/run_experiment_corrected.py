@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
 from torchvision.models import (
@@ -44,9 +45,10 @@ def modify_model(name, num_classes):
     return model.to(device)
 
 
-def train_model(model, model_name, train_loader, val_loader, epochs=20, patience=5):
+def train_model(model, model_name, train_loader, val_loader, epochs=50, patience=7):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=4)
     print(f"Training {model_name} for {epochs} epochs...")
 
     best_val_loss = float('inf')
@@ -76,6 +78,8 @@ def train_model(model, model_name, train_loader, val_loader, epochs=20, patience
                 loss = criterion(outputs, y)
                 val_loss += loss.item()
         avg_val_loss = val_loss / len(val_loader)
+        scheduler.step(avg_val_loss)
+        print(f"Current LR: {scheduler.get_last_lr()} for epoch {epoch + 1}")
 
         print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
 
@@ -112,10 +116,14 @@ def evaluate_model(model, test_loader):
     return acc, prec, rec, f1, kappa
 
 
-def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=20):
+# Create a single DataFrame to store all fold-wise results
+all_fold_results_df = pd.DataFrame(columns=["ImageType", "Model", "Fold", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
+
+def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=50):
+    global all_fold_results_df  # To modify the global DataFrame
     dataset = get_dataset(image_type)
     print("Dataset is loaded.")
-    labels = [label for _, label in dataset.imgs]  # Extract labels for stratification
+    labels = [label for _, label in dataset.imgs]
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
@@ -143,6 +151,9 @@ def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=20):
         print(f"Fold {fold+1}: Accuracy={acc:.2f}%, Precision={prec:.2f}%, Recall={rec:.2f}%, F1={f1:.2f}%, Cohen's Kappa={kappa:.2f}%")
         scores.append((acc, prec, rec, f1, kappa))
 
+        # Append fold results to the global DataFrame
+        all_fold_results_df.loc[len(all_fold_results_df)] = [image_type, model_name, fold + 1, acc, prec, rec, f1, kappa]
+
     return np.mean(scores, axis=0)
 
 
@@ -166,8 +177,14 @@ for image_type in image_types:
         })
         print(f"\n{model_name} on {image_type} → Accuracy: {avg_acc:.2f}%, Precision: {avg_prec:.2f}%, Recall: {avg_rec:.2f}%, F1: {avg_f1:.2f}%, Cohen's Kappa: {avg_kappa:.2f}%\n")
 
-# Save and print summary
+# Save mean results
 df = pd.DataFrame(results)
 df.to_csv("gtzan_cnn_corrected_results.csv", index=False)
+print("\nMean results saved to 'gtzan_cnn_corrected_results.csv'.")
+
+# Save all fold-wise results
+all_fold_results_df.to_csv("gtzan_cnn_fold_results_all.csv", index=False)
+print("All fold-wise results saved to 'gtzan_cnn_fold_results_all.csv'.")
+
 print("\nFinal Results:\n")
 print(df.to_string(index=False))
