@@ -1,0 +1,16 @@
+Image Type,Model,5-Fold Accuracy,Precision,Recall,F1 Score,Cohen's Kappa
+melspectrogram,resnet18,86.99,86.99,86.99,86.86,85.54
+melspectrogram,mobilenet_v2,80.61,80.5,80.62,80.41,78.46
+melspectrogram,efficientnet_b0,87.29,87.45,87.29,87.23,85.87
+melspectrogram,CustomCNN-1,83.88,84.96,83.88,83.89,82.09
+melspectrogram,CustomCNN-2,69.17,69.86,69.17,68.49,65.74
+spectrogram,resnet18,84.62,84.63,84.62,84.49,82.91
+spectrogram,mobilenet_v2,76.31,76.18,76.32,75.93,73.68
+spectrogram,efficientnet_b0,85.49,85.39,85.49,85.33,83.87
+spectrogram,CustomCNN-1,77.61,78.09,77.61,77.42,75.12
+spectrogram,CustomCNN-2,61.49,61.46,61.49,60.69,57.22
+chromagram,resnet18,59.69,58.88,59.71,58.91,55.21
+chromagram,mobilenet_v2,51.32,51.01,51.33,50.75,45.91
+chromagram,efficientnet_b0,58.63,58.71,58.64,58.32,54.03
+chromagram,CustomCNN-1,45.91,44.46,45.91,43.57,39.90
+chromagram,CustomCNN-2,43.74,42.10,43.74,41.49,37.50

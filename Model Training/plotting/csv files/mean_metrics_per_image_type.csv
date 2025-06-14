@@ -1,0 +1,4 @@
+ImageType,Accuracy,F1,Cohen_Kappa
+melspectrogram,81.59,81.38,79.54
+spectrogram,77.10,76.77,74.56
+chromagram,51.86,50.61,46.51

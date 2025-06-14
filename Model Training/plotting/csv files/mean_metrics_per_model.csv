@@ -1,0 +1,6 @@
+Model,Accuracy,F1,Cohen_Kappa
+resnet18,77.10,76.75,74.55
+mobilenet_v2,69.41,69.03,66.02
+efficientnet_b0,77.14,76.96,74.59
+CustomCNN-1,69.13,68.29,65.70
+CustomCNN-2,58.13,56.89,53.49

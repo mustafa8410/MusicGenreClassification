@@ -1,0 +1,4 @@
+Image Type,Accuracy,Precision,Recall,F1 Score,Cohen's Kappa
+spectrogram,77.61,78.09,77.61,77.42,75.12
+melspectrogram,83.88,84.96,83.88,83.89,82.09
+chromagram,45.91,44.46,45.91,43.57,39.90

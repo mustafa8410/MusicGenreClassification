@@ -1,0 +1,16 @@
+Image Type,Fold,Accuracy,Precision,Recall,F1 Score,Cohen's Kappa
+spectrogram,1,77.50,79.13,77.50,77.80,75.00
+spectrogram,2,81.67,82.28,81.67,81.84,79.63
+spectrogram,3,77.46,78.03,77.46,77.06,74.96
+spectrogram,4,77.96,77.93,77.96,77.58,75.51
+spectrogram,5,73.46,73.09,73.46,72.81,70.51
+melspectrogram,1,82.00,83.21,82.00,81.99,80.00
+melspectrogram,2,87.83,88.39,87.83,87.79,86.48
+melspectrogram,3,80.13,81.86,80.13,80.21,77.93
+melspectrogram,4,86.81,87.42,86.81,86.82,85.35
+melspectrogram,5,82.64,83.93,82.64,82.65,80.71
+chromagram,1,53.00,53.89,53.00,53.22,47.78
+chromagram,2,50.67,51.01,50.67,49.97,45.19
+chromagram,3,28.38,17.06,28.38,18.28,20.44
+chromagram,4,45.74,49.46,45.74,45.77,39.71
+chromagram,5,51.75,50.89,51.75,50.59,46.39
