@@ -18,7 +18,7 @@ print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU")
 
 
 def get_dataset(image_type):
-    data_path = f'transformingAudio/{image_type}_images'
+    data_path = f'../transformingAudio/{image_type}_images'
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),

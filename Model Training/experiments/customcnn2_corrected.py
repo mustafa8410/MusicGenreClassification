@@ -1,14 +1,11 @@
+import os
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.optim.lr_scheduler as lr_scheduler
+from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
-from torchvision.models import (
-    resnet18, ResNet18_Weights,
-    mobilenet_v2, MobileNet_V2_Weights,
-    efficientnet_b0, EfficientNet_B0_Weights
-)
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, cohen_kappa_score
 import numpy as np
@@ -24,32 +21,51 @@ print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU")
 
 
 def get_dataset(image_type):
-    data_path = f'transformingAudio/{image_type}_images'
+    data_path = f'../transformingAudio/{image_type}_images'
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
     ])
     return datasets.ImageFolder(root=data_path, transform=transform)
 
+# 32 of 3x3 kernels, relu, 2x2 pooling
+# 64 of 3x3 kernels, relu, 2x2 pooling
+# 128 of 3x3 kernels, relu, 2x2 pooling
+# flattened to a vector
+# fully connected layer, 128 input 64 output, relu, 0.4 dropout
+# classification layer
+def build_sequential_cnn(num_classes):
+    return nn.Sequential(
+        nn.Conv2d(3, 32, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(2),
 
-def modify_model(name, num_classes):
-    if name == 'resnet18':
-        model = resnet18(weights=ResNet18_Weights.DEFAULT)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-    elif name == 'mobilenet_v2':
-        model = mobilenet_v2(weights=MobileNet_V2_Weights.DEFAULT)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-    elif name == 'efficientnet_b0':
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-    return model.to(device)
+        nn.Conv2d(32, 64, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(2),
+
+        nn.Conv2d(64, 128, kernel_size=3, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(2),
+
+        nn.AdaptiveAvgPool2d((1, 1)),
+        nn.Flatten(),
+        nn.Linear(128, 64),
+        nn.Sigmoid(),
+        nn.Dropout(0.1),
+        nn.Linear(64, 64),
+        nn.Sigmoid(),
+        nn.Dropout(0.1),
+        nn.Linear(64, num_classes)
+    )
 
 
-def train_model(model, model_name, train_loader, val_loader, epochs=50, patience=7):
+def train_model(model, train_loader, val_loader, epochs=75, patience=5):
+    model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=4)
-    print(f"Training {model_name} for {epochs} epochs...")
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
 
     best_val_loss = float('inf')
     patience_counter = 0
@@ -60,29 +76,31 @@ def train_model(model, model_name, train_loader, val_loader, epochs=50, patience
         running_loss = 0.0
         for X, y in train_loader:
             X, y = X.to(device), y.to(device)
+            optimizer.zero_grad()
             outputs = model(X)
             loss = criterion(outputs, y)
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
 
         avg_train_loss = running_loss / len(train_loader)
 
+        # Evaluate on validation set
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for X, y in val_loader:
-                X, y = X.to(device), y.to(device)
-                outputs = model(X)
-                loss = criterion(outputs, y)
+            for X_val, y_val in val_loader:
+                X_val, y_val = X_val.to(device), y_val.to(device)
+                val_outputs = model(X_val)
+                loss = criterion(val_outputs, y_val)
                 val_loss += loss.item()
         avg_val_loss = val_loss / len(val_loader)
         scheduler.step(avg_val_loss)
         print(f"Current LR: {scheduler.get_last_lr()} for epoch {epoch + 1}")
 
-        print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
+        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
 
+        # Early stopping
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             best_model_state = model.state_dict()
@@ -109,28 +127,27 @@ def evaluate_model(model, test_loader):
             y_pred.extend(predicted.cpu().numpy())
 
     acc = 100 * accuracy_score(y_true, y_pred)
-    prec = 100 * precision_score(y_true, y_pred, average='macro')
-    rec = 100 * recall_score(y_true, y_pred, average='macro')
-    f1 = 100 * f1_score(y_true, y_pred, average='macro')
+    prec = 100 * precision_score(y_true, y_pred, average='weighted')
+    rec = 100 * recall_score(y_true, y_pred, average='weighted')
+    f1 = 100 * f1_score(y_true, y_pred, average='weighted')
     kappa = 100 * cohen_kappa_score(y_true, y_pred)
     return acc, prec, rec, f1, kappa
 
 
-# Create a single DataFrame to store all fold-wise results
-all_fold_results_df = pd.DataFrame(columns=["ImageType", "Model", "Fold", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
+# Create a single DataFrame to store fold results for all image types
+all_fold_results_df = pd.DataFrame(columns=["ImageType", "Fold", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
 
-def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=50):
+def run_experiment(image_type, folds=5, batch_size=32, epochs=75):
     global all_fold_results_df  # To modify the global DataFrame
+    print(f"\n========= Training CustomCNN on {image_type.upper()} =========")
     dataset = get_dataset(image_type)
-    print("Dataset is loaded.")
     labels = [label for _, label in dataset.imgs]
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     num_classes = len(dataset.classes)
     scores = []
-    print(f"\nImage Type: {image_type}, Model: {model_name}, Folds: {folds}, Batch Size: {batch_size}, Epochs: {epochs}")
 
     for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.zeros(len(labels)), labels)):
-        print(f"\n{'='*20} Fold {fold+1}/{folds} {'='*20}")
+        print(f"\n--- Fold {fold+1}/{folds} ---")
 
         train_val_data = Subset(dataset, train_val_idx)
         test_data = Subset(dataset, test_idx)
@@ -143,48 +160,34 @@ def run_experiment(image_type, model_name, folds=5, batch_size=32, epochs=50):
         val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
-        model = modify_model(model_name, num_classes)
-        print(f"Model {model_name} is loaded.")
-        train_model(model, model_name, train_loader, val_loader, epochs)
+        model = build_sequential_cnn(num_classes)
+        train_model(model, train_loader, val_loader, epochs)
         acc, prec, rec, f1, kappa = evaluate_model(model, test_loader)
 
         print(f"Fold {fold+1}: Accuracy={acc:.2f}%, Precision={prec:.2f}%, Recall={rec:.2f}%, F1={f1:.2f}%, Cohen's Kappa={kappa:.2f}%")
         scores.append((acc, prec, rec, f1, kappa))
 
         # Append fold results to the global DataFrame
-        all_fold_results_df.loc[len(all_fold_results_df)] = [image_type, model_name, fold + 1, acc, prec, rec, f1, kappa]
+        all_fold_results_df.loc[len(all_fold_results_df)] = [image_type, fold + 1, acc, prec, rec, f1, kappa]
 
-    return np.mean(scores, axis=0)
+    scores_np = np.array(scores)
+    mean_scores = scores_np.mean(axis=0)
+    print(f"\nMean for {image_type.upper()}: Accuracy={mean_scores[0]:.2f}%, Precision={mean_scores[1]:.2f}%, Recall={mean_scores[2]:.2f}%, F1={mean_scores[3]:.2f}%, Cohen's Kappa={mean_scores[4]:.2f}%")
+    return (image_type, *mean_scores)
 
 
-# Main script
-image_types = ['melspectrogram', 'spectrogram', 'chromagram']
-models_to_test = ['resnet18', 'mobilenet_v2', 'efficientnet_b0']
-
-results = []
-
-for image_type in image_types:
-    for model_name in models_to_test:
-        avg_acc, avg_prec, avg_rec, avg_f1, avg_kappa = run_experiment(image_type, model_name)
-        results.append({
-            'Image Type': image_type,
-            'Model': model_name,
-            '5-Fold Accuracy': round(avg_acc, 2),
-            'Precision': round(avg_prec, 2),
-            'Recall': round(avg_rec, 2),
-            'F1 Score': round(avg_f1, 2),
-            "Cohen's Kappa": round(avg_kappa, 2)
-        })
-        print(f"\n{model_name} on {image_type} → Accuracy: {avg_acc:.2f}%, Precision: {avg_prec:.2f}%, Recall: {avg_rec:.2f}%, F1: {avg_f1:.2f}%, Cohen's Kappa: {avg_kappa:.2f}%\n")
+all_results = []
+for image_type in ["spectrogram", "melspectrogram", "chromagram"]:
+    all_results.append(run_experiment(image_type))
 
 # Save mean results
-df = pd.DataFrame(results)
-df.to_csv("gtzan_cnn_corrected_results.csv", index=False)
-print("\nMean results saved to 'gtzan_cnn_corrected_results.csv'.")
+results_df = pd.DataFrame(all_results, columns=["ImageType", "Accuracy", "Precision", "Recall", "F1", "Cohen's Kappa"])
+print("\n===== AVERAGE RESULTS FOR CUSTOM CNN =====")
+print(results_df)
+results_df.to_csv("customcnn2_corrected_results.csv", index=False)
+print("Mean results saved to 'customcnn2_corrected_results.csv'.")
 
 # Save all fold-wise results
-all_fold_results_df.to_csv("gtzan_cnn_fold_results_all.csv", index=False)
-print("All fold-wise results saved to 'gtzan_cnn_fold_results_all.csv'.")
+all_fold_results_df.to_csv("customcnn2_all_fold_results.csv", index=False)
+print("All fold-wise results saved to 'customcnn2_all_fold_results'.")
 
-print("\nFinal Results:\n")
-print(df.to_string(index=False))
