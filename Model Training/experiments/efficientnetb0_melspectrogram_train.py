@@ -109,7 +109,7 @@ skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
 num_classes = len(dataset.classes)
 
 fold_metrics = []
-best_metric = -np.inf   # Use F1 or accuracy or your favorite metric
+best_metric = -np.inf
 best_fold = -1
 best_model_weights = None
 
@@ -131,7 +131,7 @@ for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.zeros(len(labels))
     print(f"Fold {fold+1}: Accuracy={acc:.2f}%, Precision={prec:.2f}%, Recall={rec:.2f}%, F1={f1:.2f}%, Cohen's Kappa={kappa:.2f}%")
     fold_metrics.append({'Fold': fold+1, 'Accuracy': acc, 'Precision': prec, 'Recall': rec, 'F1': f1, "Cohen's Kappa": kappa})
 
-    # Save model if this fold is the best so far (by F1 score; you can change to accuracy if preferred)
+
     if kappa > best_metric:
         best_metric = kappa
         best_fold = fold + 1
@@ -144,6 +144,6 @@ print("\nAll fold metrics saved to 'efficientnet_b0_melspectrogram_fold_metrics.
 
 # Save the best model weights to disk
 if best_model_weights is not None:
-    model_save_path = f"efficientnet_b0_melspectrogram_best_fold_{best_fold}.pt"
+    model_save_path = f"efficientnet_b0_melspec.pth"
     torch.save(best_model_weights, model_save_path)
     print(f"Best model weights (fold {best_fold}) saved to '{model_save_path}'.")
