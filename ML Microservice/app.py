@@ -75,7 +75,7 @@ def audio_to_melspectrogram_image(audio_bytes):
     # 2. Mel spectrogram
     S = librosa.feature.melspectrogram(y=y, sr=sr, window='hann', hop_length=512)
     S_db = librosa.power_to_db(S, ref=np.max)
-    # 3. Plot and save to buffer (simulate your PNG image pipeline)
+    # 3. Plot and save to buffer
     fig = plt.figure(figsize=(4.32, 2.88), dpi=100)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
