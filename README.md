@@ -33,7 +33,7 @@ repo-root/
 
 ## 🧩 Modules Overview
 
-### 1. Model Training (`model-training/`)
+### 1. Model Training (`Model Training/`)
 
 * Generate spectrogram/chromagram/melspectrogram images from audio
 * Train and evaluate CNNs (custom and pretrained, e.g., EfficientNet-B0)
@@ -41,7 +41,7 @@ repo-root/
 
 ---
 
-### 2. ML Microservice (`ml-microservice/`)
+### 2. ML Microservice (`ML Microservice/`)
 
 * FastAPI service for genre prediction from audio files
 * Handles webm/ogg conversion using ffmpeg; generates melspectrogram images for inference
@@ -56,7 +56,7 @@ repo-root/
 
 ---
 
-### 3. Web App (`web-app/`)
+### 3. Web App (`Web/`)
 
 * Spring Boot backend (Java 24+) with Thymeleaf frontend
 * User authentication (Spring Security), guest mode, audio recording and upload, dashboard/history, and download support
