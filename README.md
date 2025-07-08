@@ -8,7 +8,7 @@ This project is a modular, microservice-based music genre classification system 
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 repo-root/
@@ -21,7 +21,7 @@ repo-root/
 
 ---
 
-## 🚀 Features
+## Features
 
 * **Trains and evaluates 5 different CNN architectures** on 3 audio image types (mel spectrogram, spectrogram, chromagram)
 * **User-friendly web app:** Registration, login, guest access, audio recording, and prediction history
@@ -31,7 +31,7 @@ repo-root/
 
 ---
 
-## 🧩 Modules Overview
+## Modules Overview
 
 ### 1. Model Training (`Model Training/`)
 
@@ -68,7 +68,7 @@ repo-root/
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 
@@ -105,7 +105,7 @@ cd music-genre-classification-fullstack
 
 ---
 
-## ⚡ Demo Features
+## Features
 
 * Register or continue as guest
 * Record or upload audio
@@ -114,7 +114,7 @@ cd music-genre-classification-fullstack
 
 ---
 
-## ❗ Troubleshooting
+## Troubleshooting
 
 * **Lombok issues:**
   Remove any `<annotationProcessorPaths>` for Lombok in `pom.xml` and ensure the Lombok plugin is enabled in your IDE.
