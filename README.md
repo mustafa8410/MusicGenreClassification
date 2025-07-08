@@ -125,7 +125,7 @@ cd music-genre-classification-fullstack
 
 ---
 
-## 📄 License / Credits
+## License / Credits
 
 * Dataset: [GTZAN Music Genre Collection](http://marsyas.info/downloads/datasets.html)
 
